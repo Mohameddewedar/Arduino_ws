@@ -1,0 +1,5 @@
+{
+    "board": "arduino:avr:uno",
+    "sketch": "rover_control.ino",
+    "port": "/dev/ttyACM0"
+}

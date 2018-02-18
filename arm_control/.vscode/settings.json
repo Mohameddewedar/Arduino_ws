@@ -1,0 +1,18 @@
+{
+    "files.associations": {
+        "*.rviz": "makefile",
+        "*.urdf": "xml",
+        "*.xacro": "xml",
+        "*.txt": "cmake",
+        "*.ipp": "cpp",
+        "map": "cpp",
+        "cmath": "cpp",
+        "complex": "cpp",
+        "chrono": "cpp",
+        "valarray": "cpp",
+        "__tree": "cpp",
+        "bitset": "cpp",
+        "set": "cpp",
+        "*.gen": "cpp"
+    }
+}
