@@ -1,6 +1,5 @@
-// This is the Serial Version of the Code
-
 #include <Servo.h>
+#include <Wire.h>
 
 #define LINEAR1_PWM 9 // PWM
 #define LINEAR1_DIR 4 // Direction
@@ -27,7 +26,7 @@ Servo new_link_servo;
 char rec;
 String out;
 int count;
-String recArray[NO_REC_VALS - 1];
+String recArray[NO_REC_VALS - 1]; // 0-Based Indexing
 int i = 0;
 bool valid = false;
 bool init_arm = true;
@@ -135,7 +134,8 @@ bool do_linear(int linear_number, float desired_length) {
     if (abs(desired_length - d2_actual) < 2) {
       analogWrite(LINEAR2_PWM, 0);
       return true;
-    } else if (init_arm || (d2_desired > 330 && d2_desired < 380)) // In **new Range
+    } else if (init_arm ||
+               (d2_desired > 330 && d2_desired < 380)) // In **new Range
     {
       if (d2_actual > desired_length)
         digitalWrite(LINEAR2_DIR, LOW);
@@ -186,7 +186,6 @@ void angles_ctrl(int n) {
   // Serial.print("Voala:  ");
   rec = '0';
   out = "";
-
   while (Wire.available() > 0) {
 
     rec = Wire.read();
@@ -220,9 +219,9 @@ void angles_ctrl(int n) {
 
   if (new_link != 0) {
     new_link_servo.write(new_link);
-}else{
-    new_link_servo.write(90);  
-}
+  } else {
+    new_link_servo.write(90);
+  }
 
   // Serial.println(new_link);
 

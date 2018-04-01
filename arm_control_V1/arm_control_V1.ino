@@ -1,6 +1,23 @@
-// This is the Serial Version of the Code
+/*
+This code is for controlling the first version of the Robotic Arm
+
+The Arm consists of :-
+    1) 3 Linear Actuators.
+    2) 3 Servo Motors.
+    **Base control is not included in this code**
+
+The Arm Configuration is as follows:-
+    1) Linear Actuator.
+    2) Linear Actuator.
+    3) Linear Actuator.
+    4) Servo.
+    5) Servo.
+    6) Servo.
+
+*/
 
 #include <Servo.h>
+#include <Wire.h>
 
 #define LINEAR1_PWM 9 // PWM
 #define LINEAR1_DIR 4 // Direction
@@ -20,86 +37,50 @@
 
 #define PWM_VEL 255 // Velocity of Linear Actuators
 
-#define NO_REC_VALS 7 // d1 d2 d3 beta new_link twist gripper
+#define NO_REC_VALS 6 // Ture number (1-Based index)
+// Still Unknown (may icrease)
+/*
 
-Servo new_link_servo;
+Sugguestions for the commands fields (Generic):-
+index-->    0)Speed x (mm/sec) [Time Problem ???? (i.e sync/delay)]
+            1)Speed y (mm/sec)
+            2)Speed z (mm/sec)
+            3)Angle of approach [n] (Degrees)
+            4)Modes (0-->Normal Mode of Operation ,1-->Home Position
+                                            ,2-->Position_1 , ...etc)
+            5)Increment in links (Trinary) (Including Gripper and
+Twist Servos) (i.e 01201.. means 1st link static, 2nd link forward, 3rd link
+backward,...etc). (NOTE 000... means static or inverse)
+
+Feedback:-
+
+*/
 
 char rec;
 String out;
 int count;
 String recArray[NO_REC_VALS - 1];
+String links_states;
+
+String feedback_str;
+
 int i = 0;
 bool valid = false;
 bool init_arm = true;
-bool postion_reached = false;
-
-float d1_actual;
-float d2_actual;
-float d3_actual;
-
-const int numReadings = 10;
-int readIndex = 0;
-int d1_total = 0;
-int d2_total = 0;
-int d3_total = 0;
-float d1_actual_readings[numReadings] = {0};
-float d2_actual_readings[numReadings] = {0};
-float d3_actual_readings[numReadings] = {0};
 
 float d1_desired = 451;
 float d2_desired = 334;
 float d3_desired = 260;
 
-float beta;
-float new_link = 90;
+float d1_actual;
+float d2_actual;
+float d3_actual;
+int feedback_str_length=20;
 
-float reading_feedback(int linear_number) {
-  int inputPin;
-  float *readings;
-  float total;
-  switch (linear_number) {
-  case 1:
-    readings = d1_actual_readings;
-    inputPin = LINEAR1_FB;
-    total = d1_total;
-    break;
-  case 2:
-    readings = d2_actual_readings;
-    inputPin = LINEAR2_FB;
-    total = d2_total;
-    break;
-  case 3:
-    readings = d3_actual_readings;
-    inputPin = LINEAR3_FB;
-    total = d3_total;
-    break;
-  default:
-    break;
-  }
-  total = total - readings[readIndex];
-  readings[readIndex] = analogRead(inputPin);
-  total = total + readings[readIndex];
-  readIndex = readIndex + 1;
-
-  if (readIndex >= numReadings) {
-    readIndex = 0;
-  }
-  switch (linear_number) {
-  case 1:
-    d1_total = total;
-    break;
-  case 2:
-    d2_total = total;
-    break;
-  case 3:
-    d3_total = total;
-    break;
-  default:
-    break;
-  }
-  // calculate the average:
-  return total / numReadings;
-  delay(1);
+void send_feedback(){ // not the sending code yet
+feedback_str="$"+String(feedback_str_length,0)+","+String(d1_actual,0)+","+String(d2_actual,0)+","+String(d3_actual,0)+"*";
+feedback_str_length=feedback_str.length();
+Wire.write(feedback_str);
 }
 
 bool do_linear(int linear_number, float desired_length) {
@@ -135,7 +116,8 @@ bool do_linear(int linear_number, float desired_length) {
     if (abs(desired_length - d2_actual) < 2) {
       analogWrite(LINEAR2_PWM, 0);
       return true;
-    } else if (init_arm || (d2_desired > 330 && d2_desired < 380)) // In **new Range
+    } else if (init_arm ||
+               (d2_desired > 330 && d2_desired < 380)) // In **new Range
     {
       if (d2_actual > desired_length)
         digitalWrite(LINEAR2_DIR, LOW);
@@ -182,103 +164,60 @@ bool do_linear(int linear_number, float desired_length) {
   return false;
 }
 
-void angles_ctrl(int n) {
+void read_i2c(int n) {
   // Serial.print("Voala:  ");
   rec = '0';
   out = "";
 
   while (Wire.available() > 0) {
-
     rec = Wire.read();
     if (rec == '*') {
-      Serial.println(rec);
+      // Serial.println(rec);
       valid = false;
     }
     if (valid && rec != ',') {
-      Serial.print(rec);
+      // Serial.print(rec);
       out += rec;
       // Serial.print(out);
     } else if (valid && rec == ',') {
-      Serial.print(rec);
+      // Serial.print(rec);
       recArray[i] = out;
       out = "";
       i++;
     }
     if (!valid && rec == '$') {
-      Serial.print(rec);
+      // Serial.print(rec);
       valid = true;
       i = 0;
     }
   }
 
-  d1_desired = recArray[0].toInt();
-  d2_desired = recArray[1].toInt();
-  d3_desired = recArray[2].toInt();
-  beta = recArray[3].toInt();
+  links_states = recArray[5];
 
-  new_link = recArray[4].toInt();
-
-  if (new_link != 0) {
-    new_link_servo.write(new_link);
-}else{
-    new_link_servo.write(90);  
-}
-
-  // Serial.println(new_link);
-
-  do_linear(1, d1_desired);
-  do_linear(2, d2_desired);
-  do_linear(3, d3_desired);
-
-  Serial.print("d1=  ");
-  Serial.print(d1_desired);
-  Serial.print("      ");
-  Serial.print("d2=  ");
-  Serial.print(d2_desired);
-  Serial.print("      ");
-  Serial.print("d3=  ");
-  Serial.print(d3_desired);
-  Serial.print("      ");
-  Serial.print("New Link Servo=  ");
-  Serial.println(new_link);
-  delay(10);
+  // First Linear Actuator
+  if (links_states[0] != '0') {
+    d1_desired = d1_actual + 20 * (2 * links_states[0] - 3); // 1..2 ==> -1..1
+    do_linear(1, d1_desired);
+  }
+  // Second Linear Actuator
+  if (links_states[1] != '0') {
+    d2_desired = d2_actual + 20 * (2 * links_states[1] - 3); // 1..2 ==> -1..1
+    do_linear(2, d2_desired);
+  }
+  // Third Linear Actuator
+  if (links_states[2] != '0') {
+    d3_desired = d3_actual + 20 * (2 * links_states[2] - 3); // 1..2 ==> -1..1
+    do_linear(3, d3_desired);
+  }
 }
 
 void setup() {
-  pinMode(LINEAR1_PWM, OUTPUT);
-  pinMode(LINEAR1_DIR, OUTPUT);
-
-  pinMode(LINEAR2_PWM, OUTPUT);
-  pinMode(LINEAR2_DIR, OUTPUT);
-
-  pinMode(LINEAR3_PWM, OUTPUT);
-  pinMode(LINEAR3_DIR, OUTPUT);
-
-  pinMode(SERVO1, OUTPUT);
-  pinMode(SERVO2, OUTPUT);
-  pinMode(SERVO3, OUTPUT);
-
-  new_link_servo.attach(SERVO1);
-  new_link_servo.write(90);
   Serial.begin(115200);
   Serial.println("Serial Estableshed");
 
-  bool home_reached = false;
-
-  d1_desired = 451; // 451
-  d2_desired = 334; // 334
-  d3_desired = 260; // 260
-
-  Serial.println("Going to Home Position...");
-
-  while (!home_reached) {
-    home_reached = do_linear(1, d1_desired) && do_linear(2, d2_desired) &&
-                   do_linear(3, d3_desired);
-  }
-  Serial.println("Home Position Reached..");
-  init_arm = false;
   Wire.begin(44);
-  Wire.onReceive(angles_ctrl);
+  Wire.onReceive(read_i2c);
+  Wire.onRequest(send_feedback);
   Serial.println("I2C Estableshed");
   Serial.println(".... Waiting ....");
 }

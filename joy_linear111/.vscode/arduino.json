@@ -1,0 +1,5 @@
+{
+    "board": "arduino:avr:uno",
+    "sketch": "joy_linear111.ino",
+    "port": "/dev/ttyACM1"
+}

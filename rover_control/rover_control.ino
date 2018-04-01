@@ -87,13 +87,13 @@ void vel_ctrl(int n) {
   analogWrite(LEFT_REAR, abs(vl));
   digitalWrite(RIGHT_DIRECTION, dir(recArray[0].toInt() / 999.0));
   digitalWrite(LEFT_DIRECTION, !(dir(recArray[0].toInt() / 999.0)));
-  // Serial.print(vl);
-  // Serial.print(",");
-  // Serial.print(vr);
-  // Serial.print(",");
-  // Serial.print(recArray[0]);
-  // Serial.print(",");
-  // Serial.println(theta);
+  Serial.print(vl);
+  Serial.print(",");
+  Serial.print(vr);
+  Serial.print(",");
+  Serial.print(recArray[0]);
+  Serial.print(",");
+  Serial.println(theta);
 }
 
 void setup() {
@@ -106,10 +106,10 @@ void setup() {
   pinMode(RIGHT_DIRECTION, OUTPUT); // Right Direction
   pinMode(LEFT_DIRECTION, OUTPUT);  // Left Direction
   Serial.begin(115200);
-  // Serial.println("Serial Estableshed");
+  Serial.println("Serial Estableshed");
   Wire.begin(42);
   Wire.onReceive(vel_ctrl);
-  // Serial.println("I2C Estableshed");
+  Serial.println("I2C Estableshed");
 }
 
 void loop() { delay(1); }
